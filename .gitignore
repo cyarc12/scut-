@@ -1,174 +1,78 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+import time
+import random
+from selenium import webdriver
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# C extensions
-*.so
+# 指定 EdgeDriver 的路径
+edgedriver_path = r'C:\Users\Acer\Downloads\edgedriver_win64\msedgedriver.exe'
+service = Service(edgedriver_path)
+driver = webdriver.Edge(service=service)
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# 打开网页
+url = "http://1024.se.scut.edu.cn/%e4%bd%9c%e4%b8%9a%e4%ba%92%e8%af%84.aspx"
+driver.get(url)
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# 等待 15 秒用于登录
+time.sleep(15)
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# 评语列表
+comments = [
+    "作业完成得非常出色，思路清晰，答案准确。",
+    "作业质量较高，但在某些细节上还可以进一步完善。",
+    "作业整体表现良好，希望继续保持并努力提高。"
+]
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
+# 显式等待
+wait = WebDriverWait(driver, 10)
 
-# Translations
-*.mo
-*.pot
+# 获取题目列表
+title_selector = Select(driver.find_element(By.ID, "MainContent_dropTitleList"))
+title_options = [title.get_attribute("value") for title in title_selector.options]
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# 遍历每个题目
+for title_value in title_options:
+    # 选择题目
+    title_selector = wait.until(EC.presence_of_element_located((By.ID, "MainContent_dropTitleList")))
+    Select(title_selector).select_by_value(title_value)
+    time.sleep(0.1)# 等待页面刷新
 
-# Flask stuff:
-instance/
-.webassets-cache
+    # 获取作业列表
+    homework_selector = Select(driver.find_element(By.ID, "MainContent_dropStudent"))
+    homework_options = [hw.get_attribute("value") for hw in homework_selector.options[:3]]  # 仅选前三个作业
 
-# Scrapy stuff:
-.scrapy
+    # 遍历作业
+    for hw_value in homework_options:
+        # 重新获取作业选择器
+        homework_selector = wait.until(EC.presence_of_element_located((By.ID, "MainContent_dropStudent")))
+        Select(homework_selector).select_by_value(hw_value)  # 选择作业
+        time.sleep(0.1)
 
-# Sphinx documentation
-docs/_build/
+        # 获取当前分数
+        score_element = wait.until(EC.presence_of_element_located((By.ID, "MainContent_dropScore")))
+        current_score = score_element.get_attribute("value")
 
-# PyBuilder
-.pybuilder/
-target/
+        # 如果分数已存在且不为 0，则跳过
+        if current_score and current_score.strip() and current_score != "0":
+            print(f"作业 {hw_value} 已评分（{current_score}），跳过...")
+            continue
 
-# Jupyter Notebook
-.ipynb_checkpoints
+        # 随机选择评分（100, 99, 98）
+        random_score = random.choice(["100", "90", "95"])
+        Select(score_element).select_by_value(random_score)  # 选择随机分数
 
-# IPython
-profile_default/
-ipython_config.py
+        # 随机选择评语
+        random_comment = random.choice(comments)
+        wait.until(EC.presence_of_element_located((By.ID, "MainContent_txtRemark"))).send_keys(random_comment)
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+        # 提交评分
+        wait.until(EC.element_to_be_clickable((By.ID, "MainContent_btnScore"))).click()
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+        # 每次提交间隔 15 秒
+        time.sleep(15)
 
-# UV
-#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#uv.lock
-
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
-
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
-.pdm.toml
-.pdm-python
-.pdm-build/
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-
-# Ruff stuff:
-.ruff_cache/
-
-# PyPI configuration file
-.pypirc
+# 关闭浏览器
+driver.quit()
